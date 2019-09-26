@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/antlinker/go-cmap"
+	"sync"
 )
 
 const (
@@ -16,14 +16,14 @@ const (
 // NewMemoryStore 创建敏感词内存存储
 func NewMemoryStore(config MemoryConfig) (*MemoryStore, error) {
 	memStore := &MemoryStore{
-		dataStore: cmap.NewConcurrencyMap(),
+		dataStore: &sync.Map{},
 	}
 	if config.Delim == 0 {
 		config.Delim = DefaultDelim
 	}
 	if dataLen := len(config.DataSource); dataLen > 0 {
 		for i := 0; i < dataLen; i++ {
-			memStore.dataStore.Set(config.DataSource[i], 1)
+			memStore.dataStore.Store(config.DataSource[i], 1)
 		}
 	} else if config.Reader != nil {
 		buf := new(bytes.Buffer)
@@ -37,7 +37,7 @@ func NewMemoryStore(config MemoryConfig) (*MemoryStore, error) {
 				}
 				return nil, err
 			}
-			memStore.dataStore.Set(line, 1)
+			memStore.dataStore.Store(line, 1)
 		}
 		buf.Reset()
 	}
@@ -57,7 +57,7 @@ type MemoryConfig struct {
 // MemoryStore 提供内存存储敏感词
 type MemoryStore struct {
 	version   uint64
-	dataStore cmap.ConcurrencyMap
+	dataStore *sync.Map
 }
 
 // Write Write
@@ -66,7 +66,7 @@ func (ms *MemoryStore) Write(words ...string) error {
 		return nil
 	}
 	for i, l := 0, len(words); i < l; i++ {
-		ms.dataStore.Set(words[i], 1)
+		ms.dataStore.Store(words[i], 1)
 	}
 	atomic.AddUint64(&ms.version, 1)
 	return nil
@@ -76,9 +76,10 @@ func (ms *MemoryStore) Write(words ...string) error {
 func (ms *MemoryStore) Read() <-chan string {
 	chResult := make(chan string)
 	go func() {
-		for ele := range ms.dataStore.Elements() {
-			chResult <- ele.Key.(string)
-		}
+		ms.dataStore.Range(func(k, v interface{}) bool {
+			chResult <- k.(string)
+			return true
+		})
 		close(chResult)
 	}()
 	return chResult
@@ -86,13 +87,16 @@ func (ms *MemoryStore) Read() <-chan string {
 
 // ReadAll ReadAll
 func (ms *MemoryStore) ReadAll() ([]string, error) {
-	dataKeys := ms.dataStore.Keys()
-	dataLen := len(dataKeys)
-	result := make([]string, dataLen)
-	for i := 0; i < dataLen; i++ {
-		result[i] = dataKeys[i].(string)
-	}
+	result := make([]string, 8)
+	ms.dataStore.Range(func(k, v interface{}) bool {
+		result = append(result, v.(string))
+		return true
+	})
 	return result, nil
+}
+
+func (ms *MemoryStore) Update() error {
+	return nil
 }
 
 // Remove Remove
@@ -101,7 +105,7 @@ func (ms *MemoryStore) Remove(words ...string) error {
 		return nil
 	}
 	for i, l := 0, len(words); i < l; i++ {
-		ms.dataStore.Remove(words[i])
+		ms.dataStore.Delete(words[i])
 	}
 	atomic.AddUint64(&ms.version, 1)
 	return nil

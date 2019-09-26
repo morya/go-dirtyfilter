@@ -7,7 +7,7 @@ import (
 
 const (
 	// DefaultCheckInterval 敏感词检查频率（默认5秒检查一次）
-	DefaultCheckInterval = time.Second * 5
+	DefaultCheckInterval = time.Second * 180
 )
 
 // NewDirtyManager 使用敏感词存储接口创建敏感词管理的实例
@@ -22,7 +22,7 @@ func NewDirtyManager(store DirtyStore, checkInterval ...time.Duration) *DirtyMan
 		filter:   NewNodeChanFilter(store.Read()),
 		interval: interval,
 	}
-	if (interval != -1) {
+	if interval != -1 {
 		go func() {
 			manage.checkVersion()
 		}()
@@ -43,9 +43,14 @@ func (dm *DirtyManager) checkVersion() {
 	time.AfterFunc(dm.interval, func() {
 		storeVersion := dm.store.Version()
 		if dm.version < storeVersion {
+
+			// 创建NodeChan无需加锁
+			filter := NewNodeChanFilter(dm.store.Read())
+
 			dm.filterMux.Lock()
-			dm.filter = NewNodeChanFilter(dm.store.Read())
+			dm.filter = filter
 			dm.filterMux.Unlock()
+
 			dm.version = storeVersion
 		}
 		dm.checkVersion()

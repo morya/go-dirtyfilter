@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/antlinker/go-dirtyfilter"
-	"github.com/antlinker/go-dirtyfilter/store"
+	filter "github.com/morya/go-dirtyfilter"
+	"github.com/morya/go-dirtyfilter/store"
 )
 
 var (
@@ -12,13 +12,13 @@ var (
 )
 
 func main() {
-	memStore, err := store.NewMemoryStore(store.MemoryConfig{
-		DataSource: []string{"文件"},
+	fs, err := store.NewFetchStore(store.FetchConfig{
+		Remote: "http://test.domain.com/garbage_words",
 	})
 	if err != nil {
 		panic(err)
 	}
-	filterManage := filter.NewDirtyManager(memStore)
+	filterManage := filter.NewDirtyManager(fs)
 	result, err := filterManage.Filter().Filter(filterText, '*', '@')
 	if err != nil {
 		panic(err)

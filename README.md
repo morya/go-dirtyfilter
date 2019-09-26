@@ -1,6 +1,6 @@
 # Golang Dirty Filter
 
-[![GoDoc](https://godoc.org/github.com/antlinker/go-dirtyfilter?status.svg)](https://godoc.org/github.com/antlinker/go-dirtyfilter)
+[![GoDoc](https://godoc.org/github.com/morya/go-dirtyfilter?status.svg)](https://godoc.org/github.com/morya/go-dirtyfilter)
 
 > 基于DFA算法；
 > 支持动态修改敏感词，同时支持特殊字符的筛选；
@@ -9,7 +9,7 @@
 ## 获取
 
 ``` bash
-$ go get -v github.com/antlinker/go-dirtyfilter
+$ go get -v github.com/morya/go-dirtyfilter
 ```
 
 ## 使用
@@ -20,8 +20,8 @@ package main
 import (
   "fmt"
 
-  "github.com/antlinker/go-dirtyfilter"
-  "github.com/antlinker/go-dirtyfilter/store"
+  "github.com/morya/go-dirtyfilter"
+  "github.com/morya/go-dirtyfilter/store"
 )
 
 var (

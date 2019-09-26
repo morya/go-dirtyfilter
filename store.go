@@ -14,6 +14,7 @@ type DirtyStore interface {
 	// Remove 移除敏感词,如果移除失败则返回error
 	Remove(words ...string) error
 
+	Update() error
 	// Version 数据存储版本号
 	Version() uint64
 }
